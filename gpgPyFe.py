@@ -5,6 +5,7 @@ from os import system
 
 class App:
     def __init__(self, master):
+        self.IDchiave=""
         frame = Frame(master)
         frame.pack()
         self.a1=Label(frame,text="gpgPyFe",bg="yellow")
@@ -44,9 +45,9 @@ class App:
             self.t+=arg+"\n"
             self.testo.set(self.t)
     def cifra(self):
-        self.eseguigpg("-r 4B4EB747 -e")
+        self.eseguigpg("-r "+self.IDchiave+" -e")
     def cifraFirma(self):
-        self.eseguigpg("-r 4B4EB747 -es")
+        self.eseguigpg("-r "+self.IDchiave+" -es")
     def decifra(self):
         self.eseguigpg("")
     def firma(self):
