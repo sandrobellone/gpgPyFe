@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ##     gpgPyFe.py - versione 0.01
 ##	
 ##     Copyright 2017 Sandro Bellone
@@ -18,15 +19,30 @@
 import sys
 from Tkinter import *
 import tkMessageBox
-from os import system
+from os import system,path
+import ConfigParser
 
 class App:
     def __init__(self, master):
-        self.IDchiave="4B4EB747"
+        #Estrae cartella di lavoro
+        pathname = path.dirname(sys.argv[0]) 
+        #Lettura file di configurarazione gpgPyFe.ini
+        cfg=ConfigParser.RawConfigParser()
+        cfg.read(path.join(pathname,'gpgPyFe.ini'))
+        if cfg.has_option('gpgPyFe','IDchiave'):
+            self.IDchiave=cfg.get('gpgPyFe','IDchiave')
+        else:
+            self.IDchiave='xxxxxxxx'
+        if cfg.has_option('gpgPyFe','gpgPath'):
+            self.gpgPath=cfg.get('gpgPyFe','gpgPath')
+        else:
+            self.gpgPath=''
+        #Verifica presenza gpg
+        if (system(self.gpgPath+"gpg --version>/dev/null")!=0):
+            tkMessageBox.showwarning("Errore","Programma gpg non presente nel sistema.")
         frame = Frame(master)
         frame.pack()
-        self.a1=Label(frame,text="gpgPyFe",bg="yellow")
-        self.a1.pack(side=TOP)
+
         self.testo=StringVar()
         self.t="\n"
         if (len(sys.argv)==1): self.t+="\n Non ci sono file da processare \n"
@@ -40,23 +56,28 @@ class App:
         self.b1.pack(side=LEFT)
         self.b2 = Button(frame, text="Cifra e firma", command=self.cifraFirma)
         self.b2.pack(side=LEFT)
-        self.b3 = Button(frame, text="Decifra", command=self.decifra)
+        self.b3 = Button(frame, text="Cifra simmetrica", command=self.cifraSimmetrica)
         self.b3.pack(side=LEFT)
-        self.b4 = Button(frame, text="Firma", command=self.firma)
+        self.b4 = Button(frame, text="Decifra", command=self.decifra)
         self.b4.pack(side=LEFT)
-        self.b5 = Button(frame, text="Verifica", command=self.verifica)
-        self.b5.pack(side=LEFT)        
+        self.b5 = Button(frame, text="Firma", command=self.firma)
+        self.b5.pack(side=LEFT)
+        self.b6 = Button(frame, text="Verifica", command=self.verifica)
+        self.b6.pack(side=LEFT)        
         self.bi = Button(frame, text="Info", command=self.info)
         self.bi.pack(side=LEFT)
         self.bq = Button(frame, text="Esci", bg="yellow", command=frame.quit)
         self.bq.pack(side=LEFT)
     def info(self):
         tkMessageBox.showinfo("gpgPyFe", "Un front end per gpg.\nSandro Bellone\nAprile 2017\n\n"
-                              "Copyright 2017\nGNU General Public License vers.3")
+                              "Copyright 2017\nGNU General Public License vers.3\n\n"
+                              "Path: "+path.dirname(sys.argv[0])+"\n"
+                              "ID Chiave: "+self.IDchiave+"\n"
+                              "gpgPath: "+self.gpgPath)
     def eseguigpg(self,opt):
         self.t="\n"
         for arg in sys.argv[1:]:
-            x=system("gpg "+opt+" "+arg)
+            x=system(path.join(self.gpgPath,"gpg ")+opt+" "+arg)
             if x==0: self.t+="Ok - "
             else: self.t+="Exit status: "+str(x)+" "
             self.t+=arg+"\n"
@@ -65,6 +86,8 @@ class App:
         self.eseguigpg("-r "+self.IDchiave+" -e")
     def cifraFirma(self):
         self.eseguigpg("-r "+self.IDchiave+" -es")
+    def cifraSimmetrica(self):
+        self.eseguigpg("-c")
     def decifra(self):
         self.eseguigpg("")
     def firma(self):
@@ -74,5 +97,6 @@ class App:
 
 root = Tk()
 app = App(root)
+root.title("gpgPyFe")
 root.mainloop()
 root.destroy()
