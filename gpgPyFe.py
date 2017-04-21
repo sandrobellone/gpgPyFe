@@ -19,16 +19,43 @@
 import sys
 from Tkinter import *
 import tkMessageBox
-from os import system,path
+import os
 import ConfigParser
 
+pw=""
+
+class MyDialog:
+    def __init__(self, parent):
+        top = self.top = Toplevel(parent)
+        self.myLabel = Label(top, text='Inserisci la password')
+        self.myLabel.pack()
+
+        self.myEntryBox = Entry(top, show = '*')
+        self.myEntryBox.pack()
+        self.myEntryBox.bind('<Return>', self.send_return)
+
+
+        self.mySubmitButton = Button(top, text='Conferma', command=self.send_ok)
+        self.mySubmitButton.pack()
+        self.myEntryBox.focus_set()
+
+    def send_ok(self):
+        global pw
+        pw = self.myEntryBox.get()
+        self.top.destroy()
+    def send_return(self, Event):
+        self.send_ok()
+def getpwd():
+    inputDialog = MyDialog(root1)
+    root1.wait_window(inputDialog.top)
+    return pw
 class App:
     def __init__(self, master):
         #Estrae cartella di lavoro
-        pathname = path.dirname(sys.argv[0]) 
+        pathname = os.path.dirname(sys.argv[0]) 
         #Lettura file di configurarazione gpgPyFe.ini
         cfg=ConfigParser.RawConfigParser()
-        cfg.read(path.join(pathname,'gpgPyFe.ini'))
+        cfg.read(os.path.join(pathname,'gpgPyFe.ini'))
         if cfg.has_option('gpgPyFe','IDchiave'):
             self.IDchiave=cfg.get('gpgPyFe','IDchiave')
         else:
@@ -38,7 +65,11 @@ class App:
         else:
             self.gpgPath=''
         #Verifica presenza gpg
-        if (system(self.gpgPath+"gpg --version>/dev/null")!=0):
+        redir_to_dev_null=""
+        if os.name=='posix':
+            redir_to_dev_null=">/dev/null"
+        #if (os.system(self.gpgPath+"gppg --version>/dev/null")!=0):
+        if (os.system(self.gpgPath+"gpg --version"+redir_to_dev_null)!=0):
             tkMessageBox.showwarning("Errore","Programma gpg non presente nel sistema.")
         frame = Frame(master)
         frame.pack()
@@ -60,24 +91,33 @@ class App:
         self.b3.pack(side=LEFT)
         self.b4 = Button(frame, text="Decifra", command=self.decifra)
         self.b4.pack(side=LEFT)
-        self.b5 = Button(frame, text="Firma", command=self.firma)
+        self.b5 = Button(frame, text="Decifra (asimmetrica)", command=self.decifraSimmetrica)
         self.b5.pack(side=LEFT)
-        self.b6 = Button(frame, text="Verifica", command=self.verifica)
-        self.b6.pack(side=LEFT)        
+        self.b6 = Button(frame, text="Firma", command=self.firma)
+        self.b6.pack(side=LEFT)
+        self.b7 = Button(frame, text="Verifica", command=self.verifica)
+        self.b7.pack(side=LEFT)        
         self.bi = Button(frame, text="Info", command=self.info)
         self.bi.pack(side=LEFT)
         self.bq = Button(frame, text="Esci", bg="yellow", command=frame.quit)
         self.bq.pack(side=LEFT)
     def info(self):
+        if os.name=="nt":
+            nomeSistema="Microsoft Windows"
+        elif os.name=="posix":
+            nomeSistema="Gnu/Linux"
+        else:
+            nomeSistema="sconosciuto"
         tkMessageBox.showinfo("gpgPyFe", "Un front end per gpg.\nSandro Bellone\nAprile 2017\n\n"
                               "Copyright 2017\nGNU General Public License vers.3\n\n"
-                              "Path: "+path.dirname(sys.argv[0])+"\n"
+                              "Sistema: "+nomeSistema+"\n"
+                              "Path: "+os.path.dirname(sys.argv[0])+"\n"
                               "ID Chiave: "+self.IDchiave+"\n"
                               "gpgPath: "+self.gpgPath)
     def eseguigpg(self,opt):
         self.t="\n"
         for arg in sys.argv[1:]:
-            x=system(path.join(self.gpgPath,"gpg ")+opt+" "+arg)
+            x=os.system(os.path.join(self.gpgPath,"gpg ")+opt+" "+arg)
             if x==0: self.t+="Ok - "
             else: self.t+="Exit status: "+str(x)+" "
             self.t+=arg+"\n"
@@ -87,16 +127,21 @@ class App:
     def cifraFirma(self):
         self.eseguigpg("-r "+self.IDchiave+" -es")
     def cifraSimmetrica(self):
-        self.eseguigpg("-c")
+        pw=getpwd()
+        self.eseguigpg("--passphrase "+pw+" -c --no-use-agent")
     def decifra(self):
         self.eseguigpg("")
+    def decifraSimmetrica(self):
+        pw=getpwd()
+        self.eseguigpg("--passphrase "+pw+" --no-use-agent")
     def firma(self):
         self.eseguigpg("-sb")
     def verifica(self):
         self.eseguigpg("--verify")
 
-root = Tk()
-app = App(root)
-root.title("gpgPyFe")
-root.mainloop()
-root.destroy()
+
+root1 = Tk()
+app = App(root1)
+root1.title("gpgPyFe")
+root1.mainloop()
+root1.destroy()
