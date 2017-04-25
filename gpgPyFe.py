@@ -38,10 +38,12 @@ class MyDialog:
         self.mySubmitButton = Button(top, text='Conferma', command=self.send_ok)
         self.mySubmitButton.pack()
         self.myEntryBox.focus_set()
+        self.top.grab_set()
 
     def send_ok(self):
         global pw
         pw = self.myEntryBox.get()
+        self.top.grab_release()
         self.top.destroy()
     def send_return(self, Event):
         self.send_ok()
